@@ -30,7 +30,6 @@ vec4 calcColor(vec2 uv) {
 
     if (num > 0.0) {
         return bnd / num;
-        // return vec4(0.0);
     } else {
         return texture(map, uv);
     }

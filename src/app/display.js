@@ -1,6 +1,5 @@
 import { Plane } from './webgl/plane';
 import { Shader } from './webgl/shader';
-import { Camera } from './webgl/camera';
 import vertexShader from './shaders/color.vert';
 import fragmentShader from './shaders/display.frag';
 
@@ -19,8 +18,6 @@ export class Display {
             projectionMatrix: 'mat4', 
             map: 'sampler2D',
         });
-
-        this.camera = new Camera();
     }
 
     resize(width, height) {
@@ -33,7 +30,7 @@ export class Display {
 
     render() {
         this.renderer.resize(this.size.width, this.size.height);
-        this.renderer.set(this.displayPlane, this.shader, {map: this.texture}, this.camera);
+        this.renderer.set(this.displayPlane, this.shader, {map: this.texture});
         this.renderer.render({
             clearColor: [0.0, 0.0, 0.0, 1.0],
             clearDepth: 1.0,

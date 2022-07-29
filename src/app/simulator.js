@@ -1,7 +1,6 @@
 import { Framebuffer } from './webgl/framebuffer';
 import { Plane } from './webgl/plane';
 import { Shader } from './webgl/shader';
-import { Camera } from './webgl/camera';
 
 import vertexShader from './shaders/color.vert';
 import colorFragmentShader from './shaders/color.frag';
@@ -22,24 +21,19 @@ export class Simulator {
         this.velocity = new Framebuffer(this.renderer, this.size.width, this.size.height, true, 0.0);
         this.pressure = new Framebuffer(this.renderer, this.size.width, this.size.height, true, 0.0);
         this.tmpframe = new Framebuffer(this.renderer, this.size.width, this.size.height, true, null);
+        this.density = new Framebuffer(this.renderer, this.size.width, this.size.height, true, 0.0);
 
         this.plane = new Plane(this.renderer, 2, 2);
 
         this.colorShader = new Shader(this.renderer, vertexShader, colorFragmentShader);
         this.colorShader.createAttributes({position: 3, uv2: 2});
         this.colorShader.createUniforms({
-            modelMatrix: 'mat4', 
-            viewMatrix: 'mat4',
-            projectionMatrix: 'mat4',
             resolution: 'vec2',
             map: 'sampler2D',
         });
         this.boundaryShader = new Shader(this.renderer, vertexShader, simulateFragmentShader + boundaryShader);
         this.boundaryShader.createAttributes({position: 3, uv2: 2});
         this.boundaryShader.createUniforms({
-            modelMatrix: 'mat4', 
-            viewMatrix: 'mat4', 
-            projectionMatrix: 'mat4',
             resolution: 'vec2',
             map: 'sampler2D',
             bc: 'int',
@@ -47,9 +41,6 @@ export class Simulator {
         this.addShader = new Shader(this.renderer, vertexShader, simulateFragmentShader + addShader);
         this.addShader.createAttributes({position: 3, uv2: 2});
         this.addShader.createUniforms({
-            modelMatrix: 'mat4', 
-            viewMatrix: 'mat4', 
-            projectionMatrix: 'mat4',
             resolution: 'vec2',
             map: 'sampler2D',
             center: 'vec2',
@@ -59,9 +50,6 @@ export class Simulator {
         this.advectShader = new Shader(this.renderer, vertexShader, simulateFragmentShader + advectShader);
         this.advectShader.createAttributes({position: 3, uv2: 2});
         this.advectShader.createUniforms({
-            modelMatrix: 'mat4', 
-            viewMatrix: 'mat4', 
-            projectionMatrix: 'mat4',
             resolution: 'vec2',
             map: 'sampler2D',
             velocity: 'sampler2D',
@@ -70,9 +58,6 @@ export class Simulator {
         this.diffuseShader = new Shader(this.renderer, vertexShader, simulateFragmentShader + diffuseShader);
         this.diffuseShader.createAttributes({position: 3, uv2: 2});
         this.diffuseShader.createUniforms({
-            modelMatrix: 'mat4', 
-            viewMatrix: 'mat4',
-            projectionMatrix: 'mat4',
             resolution: 'vec2',
             map: 'sampler2D',
             map0: 'sampler2D',
@@ -82,9 +67,6 @@ export class Simulator {
         this.divergenceShader = new Shader(this.renderer, vertexShader, simulateFragmentShader + divergenceShader);
         this.divergenceShader.createAttributes({position: 3, uv2: 2});
         this.divergenceShader.createUniforms({
-            modelMatrix: 'mat4', 
-            viewMatrix: 'mat4',
-            projectionMatrix: 'mat4',
             startZ: 'float',
             resolution: 'vec2',
             map: 'sampler3D',
@@ -92,9 +74,6 @@ export class Simulator {
         this.poissonShader = new Shader(this.renderer, vertexShader, simulateFragmentShader + poissonShader);
         this.poissonShader.createAttributes({position: 3, uv2: 2});
         this.poissonShader.createUniforms({
-            modelMatrix: 'mat4', 
-            viewMatrix: 'mat4',
-            projectionMatrix: 'mat4',
             resolution: 'vec2',
             map: 'sampler2D',
             divergence: 'sampler2D',
@@ -104,17 +83,12 @@ export class Simulator {
         this.projectShader = new Shader(this.renderer, vertexShader, simulateFragmentShader + projectShader);
         this.projectShader.createAttributes({position: 3, uv2: 2});
         this.projectShader.createUniforms({
-            modelMatrix: 'mat4', 
-            viewMatrix: 'mat4',
-            projectionMatrix: 'mat4',
             resolution: 'vec2',
             map: 'sampler2D',
             pressure: 'sampler2D',
             rho: 'float',
             dt: 'float',
         });
-
-        this.camera = new Camera();
 
         this.param = {
             dt: 1 / 60,
@@ -129,13 +103,14 @@ export class Simulator {
         this.velocity.resize(size.width, size.height);
         this.pressure.resize(size.width, size.height);
         this.tmpframe.resize(size.width, size.height);
+        this.density.resize(size.width, size.height);
     }
 
     setRenderer(shader, uniforms) {
-        this.renderer.set(this.plane, shader, uniforms, this.camera);
+        this.renderer.set(this.plane, shader, uniforms);
     }
     
-    add(source, center) {
+    addForce(source, center) {
         // add force
         let uniforms = {
             map: this.velocity.texture, 
@@ -154,7 +129,31 @@ export class Simulator {
         this.velocity.render();
     }
 
-    render() {
+    addSource(source, center) {
+        // add source
+        let uniforms = {
+            map: this.density.texture, 
+            source: source, 
+            center: center, 
+            dt: this.param.dt,
+        };
+        this.setRenderer(this.addShader, uniforms);
+        this.density.render();
+
+        uniforms = {
+            map: this.density.texture, 
+            bc: 0,
+        };
+        this.setRenderer(this.boundaryShader, uniforms);
+        this.density.render();
+    }
+
+    simulate() {
+       this.simulateVelocity();
+       this.simulateDensity(); 
+    }
+
+    simulateVelocity() {
         // advect
         let uniforms = {
             map: this.velocity.texture, 
@@ -187,15 +186,14 @@ export class Simulator {
             };
             this.setRenderer(this.diffuseShader, uniforms);
             this.velocity.render();
-
-            uniforms = {
-                map: this.velocity.texture, 
-                bc: 1,
-            };
-            this.setRenderer(this.boundaryShader, uniforms);
-            this.velocity.render();
         }
-        
+        uniforms = {
+            map: this.velocity.texture, 
+            bc: 1,
+        };
+        this.setRenderer(this.boundaryShader, uniforms);
+        this.velocity.render();
+
         // project
         uniforms = {
             map: this.velocity.texture,
@@ -219,14 +217,13 @@ export class Simulator {
             };
             this.setRenderer(this.poissonShader, uniforms);
             this.pressure.render();
-
-            uniforms = {
-                map: this.pressure.texture, 
-                bc: 0,
-            };
-            this.setRenderer(this.boundaryShader, uniforms);
-            this.pressure.render();
         }
+        uniforms = {
+            map: this.pressure.texture, 
+            bc: 0,
+        };
+        this.setRenderer(this.boundaryShader, uniforms);
+        this.pressure.render();
 
         uniforms = {
             map: this.velocity.texture,
@@ -243,5 +240,47 @@ export class Simulator {
         };
         this.setRenderer(this.boundaryShader, uniforms);
         this.velocity.render();
+    }
+
+    simulateDensity() {
+        // diffuse
+        let uniforms = {
+            map: this.density.texture,
+        };
+        this.setRenderer(this.colorShader, uniforms);
+        this.tmpframe.render();
+
+        for (let i = 0; i < this.param.iteration; i++) {
+            uniforms = {
+                map: this.density.texture,
+                map0: this.tmpframe.texture,
+                viscosity: 1e-2,
+                dt: this.param.dt,
+            };
+            this.setRenderer(this.diffuseShader, uniforms);
+            this.density.render();
+        }
+        uniforms = {
+            map: this.density.texture, 
+            bc: 0,
+        };
+        this.setRenderer(this.boundaryShader, uniforms);
+        this.density.render();
+
+        // advect
+        uniforms = {
+            map: this.density.texture, 
+            velocity: this.velocity.texture,
+            dt: this.param.dt, 
+        };
+        this.setRenderer(this.advectShader, uniforms);
+        this.density.render();
+
+        uniforms = {
+            map: this.density.texture,
+            bc: 0,
+        };
+        this.setRenderer(this.boundaryShader, uniforms);
+        this.density.render();
     }
 }

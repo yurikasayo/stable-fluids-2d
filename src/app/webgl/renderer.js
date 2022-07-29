@@ -25,7 +25,7 @@ export class Renderer {
         this.gl.viewport(0, 0, width, height);
     }
 
-    set(geometries, shader, uniforms, camera) {
+    set(geometries, shader, uniforms) {
         if (Array.isArray(geometries)) {
             this.geometries = geometries;
         } else {
@@ -33,7 +33,6 @@ export class Renderer {
         }
         this.shader = shader;
         this.uniforms = uniforms;
-        this.camera = camera;
     }
 
     render({framebuffer = null, clearColor = null, clearDepth = null}) {
@@ -56,7 +55,6 @@ export class Renderer {
 
         for (let geometry of this.geometries) {
             this.setAttributes(geometry);
-            this.setUniform(this.shader.uniforms["modelMatrix"].location, geometry.modelMatrix, this.shader.uniforms["modelMatrix"].type);
             gl.drawElements(gl.TRIANGLES, geometry.indexLength, gl.UNSIGNED_BYTE, 0);
         }
 
@@ -98,9 +96,6 @@ export class Renderer {
                 }
             }
         }
-
-        this.setUniform(shader.uniforms["viewMatrix"].location, this.camera.viewMatrix, shader.uniforms["viewMatrix"].type);
-        this.setUniform(shader.uniforms["projectionMatrix"].location, this.camera.projectionMatrix, shader.uniforms["projectionMatrix"].type);
     }
 
     setUniform(location, value, type) {

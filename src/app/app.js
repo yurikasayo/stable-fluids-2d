@@ -15,8 +15,11 @@ export class MyApp {
         this.display = new Display(this.renderer, canvas.width, canvas.height);
         this.simulator = new Simulator(this.renderer, this.textureSize);
 
+        this.mouse = {x: 0, y: 0, dx: 0, dy: 0, down: false};
         window.addEventListener('resize', this.resize.bind(this));
-        window.addEventListener('mousemove', e => this.mousemove(e));
+        this.canvas.addEventListener('mousemove', e => this.mousemove(e));
+        this.canvas.addEventListener('mousedown', this.mousedown.bind(this));
+        this.canvas.addEventListener('mouseup', this.mouseup.bind(this));
 
         if (this.debug) {
             this.setDebug();
@@ -49,24 +52,30 @@ export class MyApp {
     }
 
     mousemove(e) {
-        if (!this.mouse) {
-            this.mouse = {
-                x: e.x,
-                y: window.innerHeight - e.y,
-            };
-        }
+        this.mouse.x = e.x;
+        this.mouse.y = window.innerHeight - e.y;
+        this.mouse.dx = e.movementX;
+        this.mouse.dy = -e.movementY;
 
-        this.mouse = {
-            x: e.x,
-            y: window.innerHeight - e.y,
-            dx: e.x - this.mouse.x, 
-            dy: (window.innerHeight - e.y) - this.mouse.y,
-        };
-
-        this.simulator.add(
+        this.simulator.addForce(
             [this.mouse.dx, this.mouse.dy, 0.0, 0.0],
             [this.mouse.x / window.innerWidth, this.mouse.y / window.innerHeight]
         );
+
+        if (this.mouse.down == true) {
+            this.simulator.addSource(
+                [0.1 * Math.sqrt(this.mouse.dx * this.mouse.dx + this.mouse.dy * this.mouse.dy), 0.0, 0.0, 0.0],
+                [this.mouse.x / window.innerWidth, this.mouse.y / window.innerHeight]
+            )
+        }
+    }
+
+    mousedown() {
+        this.mouse.down = true;
+    }
+
+    mouseup() {
+        this.mouse.down = false;
     }
 
     loop() {
@@ -76,8 +85,8 @@ export class MyApp {
             this.stats.end();
             this.stats.begin();
         }
-        this.simulator.render();
-        this.display.setTexture(this.simulator.velocity.texture);
+        this.simulator.simulate();
+        this.display.setTexture(this.simulator.density.texture);
         this.display.render();
     }
 
@@ -87,7 +96,6 @@ export class MyApp {
         this.gui.add(this.simulator.param, "viscosity").min(1e-6).max(1e-2).step(1e-5);
         this.gui.add(this.simulator.param, "rho").min(1).max(1000).step(1);
         
-
         this.stats = new Stats();
         this.stats.showPanel(0);
         document.body.appendChild(this.stats.dom);
