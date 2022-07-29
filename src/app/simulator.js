@@ -254,7 +254,7 @@ export class Simulator {
             uniforms = {
                 map: this.density.texture,
                 map0: this.tmpframe.texture,
-                viscosity: 1e-2,
+                viscosity: this.param.viscosity,
                 dt: this.param.dt,
             };
             this.setRenderer(this.diffuseShader, uniforms);

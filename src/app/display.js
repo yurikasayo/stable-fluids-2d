@@ -13,11 +13,11 @@ export class Display {
         this.shader = new Shader(this.renderer, vertexShader, fragmentShader);
         this.shader.createAttributes({position: 3, uv2: 2});
         this.shader.createUniforms({
-            modelMatrix: 'mat4', 
-            viewMatrix: 'mat4', 
-            projectionMatrix: 'mat4', 
             map: 'sampler2D',
+            colorMode: 'int'
         });
+
+        this.param = {colorMode: 0};
     }
 
     resize(width, height) {
@@ -30,7 +30,7 @@ export class Display {
 
     render() {
         this.renderer.resize(this.size.width, this.size.height);
-        this.renderer.set(this.displayPlane, this.shader, {map: this.texture});
+        this.renderer.set(this.displayPlane, this.shader, {map: this.texture, colorMode: this.param.colorMode});
         this.renderer.render({
             clearColor: [0.0, 0.0, 0.0, 1.0],
             clearDepth: 1.0,

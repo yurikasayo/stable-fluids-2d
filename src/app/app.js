@@ -20,9 +20,11 @@ export class MyApp {
         this.canvas.addEventListener('mousemove', e => this.mousemove(e));
         this.canvas.addEventListener('mousedown', this.mousedown.bind(this));
         this.canvas.addEventListener('mouseup', this.mouseup.bind(this));
+        this.canvas.addEventListener('touchmove', e => this.touchmove(e));
 
+        this.setGui();
         if (this.debug) {
-            this.setDebug();
+            this.setStats();
         }
 
         this.loop();
@@ -58,7 +60,7 @@ export class MyApp {
         this.mouse.dy = -e.movementY;
 
         this.simulator.addForce(
-            [this.mouse.dx, this.mouse.dy, 0.0, 0.0],
+            [this.mouse.dx * window.innerWidth / window.innerHeight, this.mouse.dy, 0.0, 0.0],
             [this.mouse.x / window.innerWidth, this.mouse.y / window.innerHeight]
         );
 
@@ -78,6 +80,10 @@ export class MyApp {
         this.mouse.down = false;
     }
 
+    touchmove(e) {
+        e.preventDefault();
+    }
+
     loop() {
         requestAnimationFrame(this.loop.bind(this));
 
@@ -86,16 +92,30 @@ export class MyApp {
             this.stats.begin();
         }
         this.simulator.simulate();
-        this.display.setTexture(this.simulator.density.texture);
+        switch(this.guiObject.display) {
+            case "velocity":
+                this.display.setTexture(this.simulator.velocity.texture);
+                break;
+            case "density":
+                this.display.setTexture(this.simulator.density.texture);
+                break;
+            case "pressure":
+                this.display.setTexture(this.simulator.pressure.texture);
+        }
         this.display.render();
     }
 
-    setDebug() {
+    setGui() {
         this.gui = new GUI();
-        this.gui.add(this.simulator.param, "iteration").min(5).max(20).step(1);
-        this.gui.add(this.simulator.param, "viscosity").min(1e-6).max(1e-2).step(1e-5);
-        this.gui.add(this.simulator.param, "rho").min(1).max(1000).step(1);
-        
+        this.guiObject = {display: "velocity"};
+        this.gui.add(this.guiObject, "display", ["velocity", "density", "pressure"]);
+        this.gui.add(this.display.param, "colorMode").min(0).max(3).step(1);
+        this.gui.add(this.simulator.param, "iteration").min(1).max(20).step(1);
+        this.gui.add(this.simulator.param, "viscosity").min(1e-4).max(1e-2).step(1e-4);
+        this.gui.add(this.simulator.param, "rho").min(10).max(1000).step(1);
+    }
+
+    setStats() {
         this.stats = new Stats();
         this.stats.showPanel(0);
         document.body.appendChild(this.stats.dom);
