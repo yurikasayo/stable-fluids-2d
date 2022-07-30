@@ -148,6 +148,8 @@ export class MyApp {
     setStats() {
         this.stats = new Stats();
         this.stats.showPanel(0);
+        this.stats.dom.style.pointerEvents = 'none';
+        this.stats.dom.style.userSelect = 'none';
         document.body.appendChild(this.stats.dom);
     }
 }
