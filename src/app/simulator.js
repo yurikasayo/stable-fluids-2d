@@ -46,6 +46,7 @@ export class Simulator {
             center: 'vec2',
             source: 'vec4',
             dt: 'float',
+            mouseScale: 'float'
         });
         this.advectShader = new Shader(this.renderer, vertexShader, simulateFragmentShader + advectShader);
         this.advectShader.createAttributes({position: 3, uv2: 2});
@@ -92,6 +93,7 @@ export class Simulator {
 
         this.param = {
             dt: 1 / 60,
+            mouseScale: 0.01,
             iteration: 10,
             viscosity: 1e-3,
             rho: 10,
@@ -117,6 +119,7 @@ export class Simulator {
             source: source, 
             center: center, 
             dt: this.param.dt,
+            mouseScale: this.param.mouseScale,
         };
         this.setRenderer(this.addShader, uniforms);
         this.velocity.render();
@@ -136,6 +139,7 @@ export class Simulator {
             source: source, 
             center: center, 
             dt: this.param.dt,
+            mouseScale: this.param.mouseScale,
         };
         this.setRenderer(this.addShader, uniforms);
         this.density.render();

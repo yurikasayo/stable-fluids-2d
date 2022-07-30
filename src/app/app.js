@@ -82,6 +82,35 @@ export class MyApp {
 
     touchmove(e) {
         e.preventDefault();
+        const touches = e.touches;
+
+        if (touches.length == 1) {
+            const x = touches[0].pageX;
+            const y = window.innerHeight - touches[0].pageY;
+            
+            this.mouse.dx = x - this.mouse.x;
+            this.mouse.dy = y - this.mouse.y;
+            this.mouse.x = x;
+            this.mouse.y = y;
+
+            this.simulator.addForce(
+                [this.mouse.dx * window.innerWidth / window.innerHeight, this.mouse.dy, 0.0, 0.0],
+                [this.mouse.x / window.innerWidth, this.mouse.y / window.innerHeight]
+            );
+        } else if (touches.length == 2) {
+            const x = (touches[0].pageX + touches[1].pageX) / 2;
+            const y = window.innerHeight - (touches[0].pageY + touches[1].pageY) / 2;
+
+            this.mouse.dx = x - this.mouse.x;
+            this.mouse.dy = y - this.mouse.y;
+            this.mouse.x = x;
+            this.mouse.y = y;
+
+            this.simulator.addSource(
+                [0.1 * Math.sqrt(this.mouse.dx * this.mouse.dx + this.mouse.dy * this.mouse.dy), 0.0, 0.0, 0.0],
+                [this.mouse.x / window.innerWidth, this.mouse.y / window.innerHeight]
+            );
+        }
     }
 
     loop() {
@@ -110,6 +139,7 @@ export class MyApp {
         this.guiObject = {display: "velocity"};
         this.gui.add(this.guiObject, "display", ["velocity", "density", "pressure"]);
         this.gui.add(this.display.param, "colorMode").min(0).max(3).step(1);
+        this.gui.add(this.simulator.param, "mouseScale").min(0.0005).max(0.01).step(0.0005);
         this.gui.add(this.simulator.param, "iteration").min(1).max(20).step(1);
         this.gui.add(this.simulator.param, "viscosity").min(1e-4).max(1e-2).step(1e-4);
         this.gui.add(this.simulator.param, "rho").min(10).max(1000).step(1);
