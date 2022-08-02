@@ -2,6 +2,7 @@
 {
     margin: 0;
     padding: 0;
+    user-select: none;
 }
 
 html,
@@ -16,5 +17,4 @@ body
     top: 0;
     left: 0;
     outline: none;
-    user-select: none;
 }
